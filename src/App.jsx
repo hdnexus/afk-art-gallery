@@ -4,89 +4,8 @@ import React, {
   useCallback,
   useMemo,
   useRef,
+  useLayoutEffect,
 } from "react";
-
-const galleryStyles = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-  gap: "20px",
-  maxWidth: 1600,
-  margin: "0 auto",
-  padding: "0 16px 60px",
-  fontFamily:
-    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const itemStyles = {
-  cursor: "pointer",
-  borderRadius: 16,
-  overflow: "hidden",
-  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6)",
-  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-  backgroundColor: "#1a1a1a",
-  display: "flex",
-  flexDirection: "column",
-  userSelect: "none",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  position: "relative",
-  willChange: "transform",
-};
-
-const imageStyles = {
-  width: "100%",
-  height: 200,
-  objectFit: "cover",
-  flexShrink: 0,
-  filter: "brightness(0.88) contrast(1.08) saturate(1.1)",
-  transition: "all 0.5s ease",
-  backgroundColor: "#0f0f0f",
-  willChange: "filter, transform",
-};
-
-const nameStyles = {
-  padding: "14px 16px",
-  fontSize: "clamp(14px, 2vw, 15px)",
-  fontWeight: "600",
-  textAlign: "center",
-  color: "#ffffff",
-  letterSpacing: "0.02em",
-  background: "linear-gradient(180deg, #1a1a1a 0%, #151515 100%)",
-  lineHeight: 1.4,
-  minHeight: 80,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 4,
-};
-
-const spinnerStyles = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "100vh",
-  gap: 20,
-};
-
-const loadMoreButtonStyles = (isMobile) => ({
-  display: "block",
-  margin: isMobile ? "60px auto 80px" : "80px auto 120px",
-  padding: isMobile ? "14px 32px" : "18px 56px",
-  fontSize: isMobile ? 14 : 16,
-  fontWeight: "600",
-  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-  color: "#ffffff",
-  border: "none",
-  borderRadius: 16,
-  cursor: "pointer",
-  userSelect: "none",
-  boxShadow: "0 12px 40px rgba(99, 102, 241, 0.4)",
-  transition: "all 0.4s ease",
-  letterSpacing: "0.03em",
-  position: "relative",
-  overflow: "hidden",
-});
 
 export default function App() {
   const isPanning = useRef(false);
@@ -94,7 +13,6 @@ export default function App() {
   const panOffset = useRef({ x: 0, y: 0 });
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-  // Pan handlers
   const handleMouseDown = (e) => {
     if (zoom <= 1) return;
     isPanning.current = true;
@@ -132,22 +50,53 @@ export default function App() {
     isPanning.current = false;
     panOffset.current = { ...offset };
   };
+
   const [data, setData] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [loadMoreHover, setLoadMoreHover] = useState(false);
-  const [navHover, setNavHover] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [screenSize, setScreenSize] = useState(() => {
+    if (typeof window === "undefined") return "desktop";
+    const width = window.innerWidth;
+    if (width < 640) return "mobile";
+    if (width < 1024) return "tablet";
+    return "desktop";
+  });
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const imgRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const lastTouchDistance = useRef(null);
+  const [isEditingCounter, setIsEditingCounter] = useState(false);
+  const [counterInput, setCounterInput] = useState("");
+  const [favorites, setFavorites] = useState([]);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [lightMode, setLightMode] = useState(false);
+
+  const ITEMS_PER_PAGE =
+    screenSize === "mobile" ? 20 : screenSize === "tablet" ? 24 : 30;
+  const TOTAL_IMAGES = 693;
+
+  const pagedData = useMemo(() => {
+    let filtered = data;
+    if (showOnlyFavorites) {
+      filtered = data.filter((_, idx) => favorites.includes(idx));
+    }
+    return filtered.slice(0, ITEMS_PER_PAGE * page);
+  }, [data, page, ITEMS_PER_PAGE, showOnlyFavorites, favorites]);
+
+  const isMobile = screenSize === "mobile";
+  const isTablet = screenSize === "tablet";
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 640) setScreenSize("mobile");
+      else if (width < 1024) setScreenSize("tablet");
+      else setScreenSize("desktop");
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -155,7 +104,7 @@ export default function App() {
   useEffect(() => {
     document.body.style.margin = "0";
     document.body.style.padding = "0";
-    document.body.style.backgroundColor = "#0a0a0a";
+    document.body.style.backgroundColor = lightMode ? "#f5f5f5" : "#0a0a0a";
     document.body.style.fontFamily =
       "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     document.body.style.overflowX = "hidden";
@@ -167,7 +116,7 @@ export default function App() {
       document.body.style.fontFamily = "";
       document.body.style.overflowX = "";
     };
-  }, []);
+  }, [lightMode]);
 
   useEffect(() => {
     fetch("/data.json")
@@ -187,39 +136,50 @@ export default function App() {
       });
   }, []);
 
-  const ITEMS_PER_PAGE = 30;
-  const pagedData = useMemo(
-    () => data.slice(0, ITEMS_PER_PAGE * page),
-    [data, page]
+  useLayoutEffect(() => {
+    if (expandedIndex !== null) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [expandedIndex]);
+
+  const resetImageState = useCallback(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    panOffset.current = { x: 0, y: 0 };
+  }, []);
+
+  const goToImage = useCallback(
+    (index) => {
+      const pageNeeded = Math.ceil((index + 1) / ITEMS_PER_PAGE);
+      setPage(pageNeeded);
+      setExpandedIndex(index);
+      resetImageState();
+      if (data[index - 1]) new Image().src = data[index - 1].img;
+      if (data[index + 1]) new Image().src = data[index + 1].img;
+    },
+    [data, ITEMS_PER_PAGE]
   );
 
-  const handlePrevious = useCallback(
-    (e) => {
-      e?.stopPropagation();
-      setExpandedIndex((prev) => (prev > 0 ? prev - 1 : pagedData.length - 1));
-      setZoom(1);
-    },
-    [pagedData.length]
-  );
+  const handlePrevious = useCallback(() => {
+    let newIndex = expandedIndex - 1;
+    if (newIndex < 0) {
+      newIndex = TOTAL_IMAGES - 1;
+    }
+    goToImage(newIndex);
+  }, [expandedIndex, goToImage]);
 
-  const handleNext = useCallback(
-    (e) => {
-      e?.stopPropagation();
-      if (
-        expandedIndex === pagedData.length - 1 &&
-        pagedData.length < data.length
-      ) {
-        setPage((p) => p + 1);
-        setExpandedIndex(pagedData.length);
-      } else {
-        setExpandedIndex((prev) =>
-          prev < pagedData.length - 1 ? prev + 1 : 0
-        );
-      }
-      setZoom(1);
-    },
-    [expandedIndex, pagedData.length, data.length]
-  );
+  const handleNext = useCallback(() => {
+    let newIndex = expandedIndex + 1;
+    if (newIndex >= TOTAL_IMAGES) {
+      newIndex = 0;
+    }
+    goToImage(newIndex);
+  }, [expandedIndex, goToImage]);
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
@@ -268,19 +228,51 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (expandedIndex !== null) {
-        if (e.key === "ArrowLeft") handlePrevious(e);
-        if (e.key === "ArrowRight") handleNext(e);
+      if (expandedIndex !== null && !isEditingCounter) {
+        if (e.key === "ArrowLeft") handlePrevious();
+        if (e.key === "ArrowRight") handleNext();
         if (e.key === "Escape") setExpandedIndex(null);
+        if (e.key === "f" || e.key === "F") toggleFavorite(expandedIndex);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [expandedIndex, handlePrevious, handleNext]);
+  }, [expandedIndex, isEditingCounter, handlePrevious, handleNext]);
+
+  const handleCounterClick = () => {
+    setIsEditingCounter(true);
+    setCounterInput(String(expandedIndex + 1));
+  };
+
+  const handleCounterSubmit = () => {
+    const num = parseInt(counterInput, 10);
+    if (!isNaN(num) && num >= 1 && num <= TOTAL_IMAGES) {
+      goToImage(num - 1);
+      setIsEditingCounter(false);
+    } else {
+      setCounterInput(String(expandedIndex + 1));
+      setIsEditingCounter(false);
+    }
+  };
+
+  const toggleFavorite = (index) => {
+    setFavorites((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
+  };
 
   if (loading) {
     return (
-      <div style={spinnerStyles}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          gap: 20,
+        }}
+      >
         <div
           style={{
             width: 60,
@@ -294,9 +286,7 @@ export default function App() {
         <div style={{ fontSize: 16, color: "#9ca3af", fontWeight: "500" }}>
           Loading gallery...
         </div>
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -304,29 +294,23 @@ export default function App() {
   return (
     <>
       <style>{`
-        @keyframes glow {
-          0% { filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.5)); }
-          100% { filter: drop-shadow(0 0 60px rgba(167, 139, 250, 0.8)); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        @media (max-width: 768px) { body { overflow-x: hidden; } }
+        @keyframes glow { 0% { filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.5)); } 100% { filter: drop-shadow(0 0 60px rgba(167, 139, 250, 0.8)); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        @keyframes heartBeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       `}</style>
 
-      {/* Gallery Header */}
+      {/* Header */}
       <div
         style={{
           position: "relative",
-          paddingTop: isMobile ? 40 : 80,
-          paddingBottom: 40,
-          background:
-            "radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%)",
+          paddingTop: isMobile ? 30 : isTablet ? 50 : 80,
+          paddingBottom: isMobile ? 25 : isTablet ? 35 : 40,
+          background: lightMode
+            ? "linear-gradient(180deg, #ffffff 0%, #f9f9f9 100%)"
+            : "radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%)",
+          borderBottom: lightMode ? "1px solid #e5e5e5" : "none",
         }}
       >
         <div
@@ -335,10 +319,11 @@ export default function App() {
             top: "10%",
             left: "50%",
             transform: "translateX(-50%)",
-            width: isMobile ? "50vw" : "40vw",
-            height: isMobile ? "50vw" : "40vw",
-            background:
-              "radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)",
+            width: isMobile ? "60vw" : isTablet ? "50vw" : "40vw",
+            height: isMobile ? "60vw" : isTablet ? "50vw" : "40vw",
+            background: lightMode
+              ? "radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%)"
+              : "radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)",
             borderRadius: "50%",
             filter: "blur(80px)",
             pointerEvents: "none",
@@ -346,13 +331,77 @@ export default function App() {
           }}
         ></div>
 
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: isMobile ? 12 : 20,
+            paddingX: isMobile ? 12 : 16,
+          }}
+        >
+          <button
+            onClick={() => setLightMode(!lightMode)}
+            style={{
+              background: lightMode
+                ? "rgba(0, 0, 0, 0.1)"
+                : "rgba(255, 255, 255, 0.1)",
+              border: lightMode
+                ? "1px solid rgba(0, 0, 0, 0.2)"
+                : "1px solid rgba(255, 255, 255, 0.2)",
+              color: lightMode ? "#000" : "#fff",
+              padding: "8px 12px",
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 16,
+              backdropFilter: "blur(10px)",
+              transition: "all 0.3s ease",
+              marginLeft: isMobile ? 12 : 16,
+            }}
+          >
+            {lightMode ? "🌙" : "☀️"}
+          </button>
+          <button
+            onClick={() => {
+              setShowOnlyFavorites(!showOnlyFavorites);
+              setPage(1);
+            }}
+            style={{
+              background: showOnlyFavorites
+                ? "rgba(236, 72, 153, 0.2)"
+                : lightMode
+                ? "rgba(0, 0, 0, 0.1)"
+                : "rgba(255, 255, 255, 0.1)",
+              border: showOnlyFavorites
+                ? "1px solid rgba(236, 72, 153, 0.5)"
+                : lightMode
+                ? "1px solid rgba(0, 0, 0, 0.2)"
+                : "1px solid rgba(255, 255, 255, 0.2)",
+              color: showOnlyFavorites
+                ? "#ec4899"
+                : lightMode
+                ? "#000"
+                : "#fff",
+              padding: "8px 12px",
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 14,
+              backdropFilter: "blur(10px)",
+              transition: "all 0.3s ease",
+              marginRight: isMobile ? 12 : 16,
+              fontWeight: "600",
+            }}
+          >
+            ❤️ {favorites.length}
+          </button>
+        </div>
+
         <h1
           style={{
             textAlign: "center",
             margin: 0,
             fontWeight: "800",
-            fontSize: isMobile ? "32px" : "72px",
-            color: "#ffffff",
+            fontSize: isMobile ? "28px" : isTablet ? "48px" : "72px",
             letterSpacing: "0.02em",
             userSelect: "none",
             background:
@@ -371,122 +420,230 @@ export default function App() {
         <div
           style={{
             display: "flex",
-            gap: 12,
+            gap: isMobile ? 8 : 12,
             justifyContent: "center",
             alignItems: "center",
-            marginTop: 16,
+            marginTop: isMobile ? 12 : 16,
+            flexWrap: "wrap",
           }}
         >
           <div
             style={{
-              width: isMobile ? 30 : 50,
+              width: isMobile ? 20 : isTablet ? 35 : 50,
               height: 2,
-              background:
-                "linear-gradient(90deg, transparent, #6366f1, transparent)",
+              background: lightMode
+                ? "linear-gradient(90deg, transparent, #6366f1, transparent)"
+                : "linear-gradient(90deg, transparent, #6366f1, transparent)",
             }}
           ></div>
           <p
             style={{
               textAlign: "center",
-              color: "#9ca3af",
-              fontSize: isMobile ? 14 : 18,
+              color: lightMode ? "#666" : "#9ca3af",
+              fontSize: isMobile ? 12 : isTablet ? 15 : 18,
               margin: 0,
               fontWeight: "500",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
             }}
           >
-            {data.length} Masterpieces
+            {showOnlyFavorites ? favorites.length : data.length}{" "}
+            {showOnlyFavorites ? "Favorites" : "Masterpieces"}
           </p>
           <div
             style={{
-              width: isMobile ? 30 : 50,
+              width: isMobile ? 20 : isTablet ? 35 : 50,
               height: 2,
-              background:
-                "linear-gradient(90deg, transparent, #6366f1, transparent)",
+              background: lightMode
+                ? "linear-gradient(90deg, transparent, #6366f1, transparent)"
+                : "linear-gradient(90deg, transparent, #6366f1, transparent)",
             }}
           ></div>
         </div>
       </div>
 
       {/* Gallery Grid */}
-      <div style={galleryStyles}>
-        {pagedData.map(({ img, name, ranking, votes }, idx) => (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile
+            ? "repeat(auto-fill, minmax(150px, 1fr))"
+            : isTablet
+            ? "repeat(auto-fill, minmax(200px, 1fr))"
+            : "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: isMobile ? 12 : isTablet ? 16 : 20,
+          maxWidth: 1600,
+          margin: "0 auto",
+          padding: isMobile
+            ? "0 12px 40px"
+            : isTablet
+            ? "0 14px 50px"
+            : "0 16px 60px",
+          fontFamily:
+            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          backgroundColor: lightMode ? "#f5f5f5" : "#0a0a0a",
+        }}
+      >
+        {pagedData.length === 0 ? (
           <div
-            key={img + idx}
             style={{
-              ...itemStyles,
-              transform:
-                hoveredIndex === idx && !isMobile
-                  ? "translateY(-12px) scale(1.02)"
-                  : "translateY(0) scale(1)",
-              boxShadow:
-                hoveredIndex === idx
-                  ? "0 24px 48px rgba(99, 102, 241, 0.4), 0 0 0 2px rgba(99, 102, 241, 0.6)"
-                  : "0 8px 32px rgba(0, 0, 0, 0.6)",
-              borderColor:
-                hoveredIndex === idx
-                  ? "rgba(99, 102, 241, 0.6)"
-                  : "rgba(255, 255, 255, 0.08)",
+              gridColumn: "1/-1",
+              textAlign: "center",
+              padding: "60px 20px",
+              color: lightMode ? "#999" : "#9ca3af",
+              fontSize: 16,
             }}
-            onClick={() => setExpandedIndex(idx)}
-            onMouseEnter={() => !isMobile && setHoveredIndex(idx)}
-            onMouseLeave={() => setHoveredIndex(null)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") setExpandedIndex(idx);
-            }}
-            aria-label={`View image: ${name}`}
           >
-            <img
-              src={img}
-              alt={name}
-              style={{
-                ...imageStyles,
-                filter:
-                  hoveredIndex === idx && !isMobile
-                    ? "brightness(1) contrast(1.15) saturate(1.2)"
-                    : "brightness(0.88) contrast(1.08) saturate(1.1)",
-                transform:
-                  hoveredIndex === idx && !isMobile
-                    ? "scale(1.08)"
-                    : "scale(1)",
-              }}
-              loading="lazy"
-            />
-            <div style={nameStyles}>
-              <div>
+            No favorites yet! ❤️
+          </div>
+        ) : (
+          pagedData.map(({ img, name, ranking, votes }, idx) => {
+            const originalIdx = data.findIndex((item) => item.img === img);
+            return (
+              <div
+                key={img + idx}
+                onClick={() => goToImage(originalIdx)}
+                onMouseEnter={() => !isMobile && setHoveredIndex(idx)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                style={{
+                  cursor: "pointer",
+                  borderRadius: isMobile ? 12 : 16,
+                  overflow: "hidden",
+                  boxShadow:
+                    hoveredIndex === idx
+                      ? lightMode
+                        ? "0 8px 24px rgba(99, 102, 241, 0.3)"
+                        : "0 24px 48px rgba(99, 102, 241, 0.4), 0 0 0 2px rgba(99, 102, 241, 0.6)"
+                      : lightMode
+                      ? "0 2px 8px rgba(0, 0, 0, 0.1)"
+                      : "0 8px 32px rgba(0, 0, 0, 0.6)",
+                  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                  backgroundColor: lightMode ? "#ffffff" : "#1a1a1a",
+                  display: "flex",
+                  flexDirection: "column",
+                  userSelect: "none",
+                  border:
+                    hoveredIndex === idx
+                      ? lightMode
+                        ? "1px solid rgba(99, 102, 241, 0.4)"
+                        : "1px solid rgba(99, 102, 241, 0.6)"
+                      : lightMode
+                      ? "1px solid rgba(0, 0, 0, 0.1)"
+                      : "1px solid rgba(255, 255, 255, 0.08)",
+                  position: "relative",
+                  willChange: "transform",
+                  transform:
+                    hoveredIndex === idx && !isMobile
+                      ? "translateY(-12px) scale(1.02)"
+                      : "translateY(0) scale(1)",
+                }}
+              >
+                <div style={{ position: "relative", overflow: "hidden" }}>
+                  <img
+                    src={img}
+                    alt={name}
+                    style={{
+                      width: "100%",
+                      height: isMobile ? 120 : isTablet ? 150 : 200,
+                      objectFit: "cover",
+                      flexShrink: 0,
+                      filter:
+                        hoveredIndex === idx && !isMobile
+                          ? "brightness(1) contrast(1.15) saturate(1.2)"
+                          : "brightness(0.88) contrast(1.08) saturate(1.1)",
+                      transform:
+                        hoveredIndex === idx && !isMobile
+                          ? "scale(1.08)"
+                          : "scale(1)",
+                      transition: "all 0.5s ease",
+                      backgroundColor: "#0f0f0f",
+                      willChange: "filter, transform",
+                    }}
+                    loading="lazy"
+                  />
+                  {favorites.includes(originalIdx) && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        background: "rgba(236, 72, 153, 0.9)",
+                        padding: "4px 8px",
+                        borderRadius: 20,
+                        fontSize: "16px",
+                        animation: "heartBeat 0.6s ease",
+                      }}
+                    >
+                      ❤️
+                    </div>
+                  )}
+                </div>
                 <div
                   style={{
-                    fontSize: "clamp(14px, 2vw, 15px)",
+                    padding: isMobile
+                      ? "10px 12px"
+                      : isTablet
+                      ? "12px 14px"
+                      : "14px 16px",
+                    fontSize: isMobile
+                      ? "clamp(12px, 2vw, 13px)"
+                      : "clamp(14px, 2vw, 15px)",
                     fontWeight: "600",
-                    color: "#fff",
+                    textAlign: "center",
+                    color: lightMode ? "#000" : "#ffffff",
+                    letterSpacing: "0.02em",
+                    background: lightMode
+                      ? "#f9f9f9"
+                      : "linear-gradient(180deg, #1a1a1a 0%, #151515 100%)",
+                    lineHeight: 1.3,
+                    minHeight: isMobile ? 60 : isTablet ? 70 : 80,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 3,
                   }}
                 >
-                  {name}
-                </div>
-                <div
-                  style={{
-                    fontSize: "clamp(12px, 1.5vw, 14px)",
-                    color: "#a78bfa",
-                    marginTop: 4,
-                  }}
-                >
-                  {ranking}
-                </div>
-                <div
-                  style={{
-                    fontSize: "clamp(12px, 1.5vw, 14px)",
-                    color: "#9ca3af",
-                  }}
-                >
-                  {votes}
+                  <div
+                    style={{
+                      fontSize: isMobile
+                        ? "clamp(11px, 2vw, 13px)"
+                        : "clamp(12px, 2vw, 15px)",
+                      fontWeight: "600",
+                      color: lightMode ? "#000" : "#fff",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      width: "100%",
+                    }}
+                  >
+                    {name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: isMobile
+                        ? "clamp(10px, 1.5vw, 12px)"
+                        : "clamp(12px, 1.5vw, 14px)",
+                      color: lightMode ? "#7c3aed" : "#a78bfa",
+                    }}
+                  >
+                    {ranking}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: isMobile
+                        ? "clamp(10px, 1.5vw, 12px)"
+                        : "clamp(12px, 1.5vw, 14px)",
+                      color: lightMode ? "#666" : "#9ca3af",
+                    }}
+                  >
+                    {votes}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })
+        )}
       </div>
 
       {pagedData.length < data.length && (
@@ -495,16 +652,37 @@ export default function App() {
           onMouseEnter={() => !isMobile && setLoadMoreHover(true)}
           onMouseLeave={() => setLoadMoreHover(false)}
           style={{
-            ...loadMoreButtonStyles(isMobile),
+            display: "block",
+            margin: isMobile
+              ? "40px auto 50px"
+              : isTablet
+              ? "60px auto 80px"
+              : "80px auto 120px",
+            padding: isMobile
+              ? "12px 24px"
+              : isTablet
+              ? "14px 40px"
+              : "18px 56px",
+            fontSize: isMobile ? 13 : isTablet ? 14 : 16,
+            fontWeight: "600",
+            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 16,
+            cursor: "pointer",
+            userSelect: "none",
+            boxShadow: loadMoreHover
+              ? "0 16px 48px rgba(99, 102, 241, 0.6)"
+              : "0 12px 40px rgba(99, 102, 241, 0.4)",
+            transition: "all 0.4s ease",
+            letterSpacing: "0.03em",
+            position: "relative",
+            overflow: "hidden",
             transform:
               loadMoreHover && !isMobile
                 ? "translateY(-4px) scale(1.05)"
                 : "translateY(0) scale(1)",
-            boxShadow: loadMoreHover
-              ? "0 16px 48px rgba(99, 102, 241, 0.6)"
-              : "0 12px 40px rgba(99, 102, 241, 0.4)",
           }}
-          aria-label="Load more images"
         >
           Load More
         </button>
@@ -525,14 +703,14 @@ export default function App() {
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1100,
-            padding: isMobile ? "8vw 4vw" : "2vw",
+            padding: isMobile ? "8vw 3vw" : isTablet ? "5vw 4vw" : "2vw",
             backdropFilter: "blur(20px)",
             animation: "fadeIn 0.3s ease",
             overscrollBehavior: "contain",
             boxSizing: "border-box",
-            gap: isMobile ? 0 : 20,
-            overflow: "auto",
-            touchAction: isMobile ? "pinch-zoom" : "none",
+            gap: isMobile ? 0 : isTablet ? 10 : 20,
+            overflow: "hidden",
+            touchAction: "none",
           }}
           onClick={() => setExpandedIndex(null)}
           onTouchStart={handleTouchStart}
@@ -542,11 +720,11 @@ export default function App() {
         >
           <img
             ref={imgRef}
-            src={pagedData[expandedIndex]?.img}
-            alt={pagedData[expandedIndex]?.name}
+            src={data[expandedIndex]?.img}
+            alt={data[expandedIndex]?.name}
             style={{
               maxWidth: "100%",
-              maxHeight: "90vh",
+              maxHeight: "85vh",
               objectFit: "contain",
               transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${
                 offset.y / zoom
@@ -556,7 +734,7 @@ export default function App() {
               cursor: zoom === 1 ? "pointer" : "grab",
             }}
             onClick={(e) => {
-              if (zoom !== 1) return; // prevent navigation when zoomed
+              if (zoom !== 1) return;
               e.stopPropagation();
               const rect = e.currentTarget.getBoundingClientRect();
               const clickX = e.clientX - rect.left;
@@ -568,107 +746,282 @@ export default function App() {
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onTouchStart={(e) => {
-              handleTouchStart(e); // pinch-zoom
-              handleTouchPanStart(e); // pan
+              handleTouchStart(e);
+              handleTouchPanStart(e);
             }}
             onTouchMove={(e) => {
-              handleTouchMove(e); // pinch-zoom
-              handleTouchPanMove(e); // pan
+              handleTouchMove(e);
+              handleTouchPanMove(e);
             }}
             onTouchEnd={(e) => {
-              handleTouchEnd(e); // pinch-zoom
-              handleTouchPanEnd(); // pan
+              handleTouchEnd(e);
+              handleTouchPanEnd();
             }}
           />
+
           {/* Counter */}
-          <div
-            style={{
-              position: "fixed",
-              top: isMobile ? "60px" : "20px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "rgba(30, 30, 30, 0.95)",
-              padding: isMobile
-                ? "clamp(4px,2vw,10px) clamp(8px,4vw,16px)"
-                : "clamp(6px,1.5vw,12px) clamp(12px,3vw,24px)",
-              borderRadius: "clamp(12px,2vw,30px)",
-              color: "#a78bfa",
-              fontSize: isMobile
-                ? "clamp(12px,3vw,16px)"
-                : "clamp(14px,2vw,18px)",
-              fontWeight: "600",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(167, 139, 250, 0.3)",
-              whiteSpace: "nowrap",
-              zIndex: 1102,
-            }}
-          >
-            {expandedIndex + 1} / {693}
-          </div>
-          {/* Navigation Buttons */}
+          {isEditingCounter ? (
+            <input
+              autoFocus
+              type="text"
+              value={counterInput}
+              onChange={(e) => setCounterInput(e.target.value)}
+              onBlur={handleCounterSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCounterSubmit();
+                if (e.key === "Escape") setIsEditingCounter(false);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "fixed",
+                top: isMobile ? "50px" : isTablet ? "40px" : "20px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "rgba(30, 30, 30, 0.95)",
+                padding: isMobile
+                  ? "8px 12px"
+                  : isTablet
+                  ? "10px 16px"
+                  : "clamp(6px,1.5vw,12px) clamp(12px,3vw,24px)",
+                borderRadius: 12,
+                color: "#a78bfa",
+                fontSize: isMobile
+                  ? 14
+                  : isTablet
+                  ? 15
+                  : "clamp(14px,2vw,18px)",
+                fontWeight: "600",
+                backdropFilter: "blur(10px)",
+                border: "2px solid #6366f1",
+                whiteSpace: "nowrap",
+                zIndex: 1102,
+                textAlign: "center",
+                width: isMobile ? "70px" : "80px",
+              }}
+            />
+          ) : (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCounterClick();
+              }}
+              style={{
+                position: "fixed",
+                top: isMobile ? "50px" : isTablet ? "40px" : "20px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "rgba(30, 30, 30, 0.95)",
+                padding: isMobile
+                  ? "8px 12px"
+                  : isTablet
+                  ? "10px 16px"
+                  : "clamp(6px,1.5vw,12px) clamp(12px,3vw,24px)",
+                borderRadius: 12,
+                color: "#a78bfa",
+                fontSize: isMobile
+                  ? 14
+                  : isTablet
+                  ? 15
+                  : "clamp(14px,2vw,18px)",
+                fontWeight: "600",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(167, 139, 250, 0.3)",
+                whiteSpace: "nowrap",
+                zIndex: 1102,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {expandedIndex + 1} / {TOTAL_IMAGES}
+            </div>
+          )}
+
+          {/* Prev Button */}
           <button
-            onClick={(e) => handlePrevious(e)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrevious();
+            }}
             style={{
               position: "absolute",
               top: "50%",
-              left: "3%",
+              left: isMobile ? "2%" : isTablet ? "2.5%" : "3%",
               transform: "translateY(-50%)",
-              fontSize: "clamp(24px, 5vw, 48px)",
-              background: "rgba(0,0,0,0.3)",
+              fontSize: isMobile
+                ? "32px"
+                : isTablet
+                ? "40px"
+                : "clamp(24px, 5vw, 48px)",
+              background: "rgba(0,0,0,0.4)",
               border: "none",
               borderRadius: "50%",
               color: "#fff",
-              width: "clamp(40px, 8vw, 80px)",
-              height: "clamp(40px, 8vw, 80px)",
+              width: isMobile
+                ? "45px"
+                : isTablet
+                ? "60px"
+                : "clamp(40px, 8vw, 80px)",
+              height: isMobile
+                ? "45px"
+                : isTablet
+                ? "60px"
+                : "clamp(40px, 8vw, 80px)",
               cursor: "pointer",
               zIndex: 1200,
+              transition: "all 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            aria-label="Previous image"
           >
             ‹
           </button>
+
+          {/* Next Button */}
           <button
-            onClick={(e) => handleNext(e)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
             style={{
               position: "absolute",
               top: "50%",
-              right: "3%",
+              right: isMobile ? "2%" : isTablet ? "2.5%" : "3%",
               transform: "translateY(-50%)",
-              fontSize: "clamp(24px, 5vw, 48px)",
-              background: "rgba(0,0,0,0.3)",
+              fontSize: isMobile
+                ? "32px"
+                : isTablet
+                ? "40px"
+                : "clamp(24px, 5vw, 48px)",
+              background: "rgba(0,0,0,0.4)",
               border: "none",
               borderRadius: "50%",
               color: "#fff",
-              width: "clamp(40px, 8vw, 80px)",
-              height: "clamp(40px, 8vw, 80px)",
+              width: isMobile
+                ? "45px"
+                : isTablet
+                ? "60px"
+                : "clamp(40px, 8vw, 80px)",
+              height: isMobile
+                ? "45px"
+                : isTablet
+                ? "60px"
+                : "clamp(40px, 8vw, 80px)",
               cursor: "pointer",
               zIndex: 1200,
+              transition: "all 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            aria-label="Next image"
           >
             ›
           </button>
-          {/* Title and Info - Bottom Fixed */}
+
+          {/* Favorite Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(expandedIndex);
+            }}
+            style={{
+              position: "absolute",
+              top: isMobile ? "50px" : isTablet ? "40px" : "20px",
+              right: isMobile ? "12px" : isTablet ? "20px" : "30px",
+              background: favorites.includes(expandedIndex)
+                ? "rgba(236, 72, 153, 0.2)"
+                : "rgba(30, 30, 30, 0.95)",
+              padding: "8px 12px",
+              borderRadius: 12,
+              color: favorites.includes(expandedIndex) ? "#ec4899" : "#9ca3af",
+              fontSize: isMobile ? 18 : 22,
+              border: favorites.includes(expandedIndex)
+                ? "1px solid rgba(236, 72, 153, 0.5)"
+                : "1px solid rgba(167, 139, 250, 0.3)",
+              cursor: "pointer",
+              backdropFilter: "blur(10px)",
+              zIndex: 1102,
+              transition: "all 0.2s ease",
+              transform: favorites.includes(expandedIndex)
+                ? "scale(1.1)"
+                : "scale(1)",
+            }}
+          >
+            ❤️
+          </button>
+
+          {/* Zoom Info for Desktop */}
+          {!isMobile && zoom > 1 && (
+            <div
+              style={{
+                position: "fixed",
+                bottom: isMobile ? "120px" : isTablet ? "130px" : "140px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "rgba(30, 30, 30, 0.95)",
+                padding: "6px 12px",
+                borderRadius: 10,
+                color: "#a78bfa",
+                fontSize: 12,
+                border: "1px solid rgba(167, 139, 250, 0.3)",
+                backdropFilter: "blur(10px)",
+                zIndex: 1102,
+                whiteSpace: "nowrap",
+              }}
+            >
+              🔍 {zoom.toFixed(1)}x | Scroll to zoom
+            </div>
+          )}
+
+          {/* Touch Hint for Mobile */}
+          {isMobile && (
+            <div
+              style={{
+                position: "fixed",
+                bottom: isMobile ? "120px" : "auto",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "rgba(30, 30, 30, 0.95)",
+                padding: "6px 12px",
+                borderRadius: 10,
+                color: "#9ca3af",
+                fontSize: 11,
+                border: "1px solid rgba(167, 139, 250, 0.3)",
+                backdropFilter: "blur(10px)",
+                zIndex: 1102,
+                whiteSpace: "nowrap",
+                animation: "fadeIn 0.5s ease",
+              }}
+            >
+              👆 Swipe to navigate | Pinch to zoom
+            </div>
+          )}
+
+          {/* Info */}
           <div
             style={{
               position: "fixed",
-              bottom: isMobile ? "20px" : "40px",
+              bottom: isMobile ? "20px" : isTablet ? "30px" : "40px",
               left: "50%",
               transform: "translateX(-50%)",
               background: "rgba(20, 20, 20, 0.95)",
               backdropFilter: "blur(16px)",
               padding: isMobile
                 ? "clamp(8px,2vw,16px) clamp(12px,4vw,32px)"
+                : isTablet
+                ? "clamp(10px,2vw,18px) clamp(14px,4vw,32px)"
                 : "clamp(12px,1.5vw,20px) clamp(16px,3vw,32px)",
               borderRadius: isMobile
                 ? "clamp(8px,2vw,12px)"
+                : isTablet
+                ? "clamp(10px,2vw,14px)"
                 : "clamp(12px,2vw,20px)",
               border: "1px solid rgba(99, 102, 241, 0.3)",
               boxShadow:
                 "0 16px 48px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2)",
               zIndex: 1102,
               textAlign: "center",
-              maxWidth: isMobile ? "90%" : "70%",
+              maxWidth: isMobile ? "90%" : isTablet ? "80%" : "70%",
               animation: "fadeIn 0.4s ease",
             }}
           >
@@ -676,6 +1029,8 @@ export default function App() {
               style={{
                 fontSize: isMobile
                   ? "clamp(14px,4vw,18px)"
+                  : isTablet
+                  ? "clamp(15px,3vw,20px)"
                   : "clamp(16px,2vw,22px)",
                 fontWeight: "600",
                 color: "#ffffff",
@@ -683,28 +1038,32 @@ export default function App() {
                 marginBottom: isMobile ? 6 : 8,
               }}
             >
-              {pagedData[expandedIndex]?.name}
+              {data[expandedIndex]?.name}
             </div>
             <div
               style={{
                 color: "#a78bfa",
                 fontSize: isMobile
                   ? "clamp(12px,3vw,16px)"
+                  : isTablet
+                  ? "clamp(13px,2vw,15px)"
                   : "clamp(14px,1.5vw,16px)",
               }}
             >
-              {pagedData[expandedIndex]?.ranking}
+              {data[expandedIndex]?.ranking}
             </div>
             <div
               style={{
                 color: "#9ca3af",
                 fontSize: isMobile
                   ? "clamp(12px,2.5vw,14px)"
+                  : isTablet
+                  ? "clamp(12px,2vw,14px)"
                   : "clamp(13px,1.2vw,15px)",
                 marginTop: 4,
               }}
             >
-              {pagedData[expandedIndex]?.votes}
+              {data[expandedIndex]?.votes}
             </div>
           </div>
         </div>
