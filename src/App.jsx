@@ -747,8 +747,10 @@ export default function App() {
               cursor: zoom === 1 ? "pointer" : "grab",
             }}
             onClick={(e) => {
-              if (zoom !== 1) return;
-              e.stopPropagation();
+              if (zoom !== 1) {
+                e.stopPropagation();
+                return;
+              }
               const rect = e.currentTarget.getBoundingClientRect();
               const clickX = e.clientX - rect.left;
               if (clickX < rect.width / 2) handlePrevious();
@@ -1059,7 +1061,7 @@ export default function App() {
             <div
               style={{
                 position: "fixed",
-                bottom: isMobile ? "5vh" : "auto",
+                bottom: isMobile ? "15vh" : "auto",
                 left: "50%",
                 transform: "translateX(-50%)",
                 background: lightMode
@@ -1086,7 +1088,7 @@ export default function App() {
             <div
               style={{
                 position: "fixed",
-                bottom: isTablet ? "2vh" : "40px",
+                bottom: isTablet ? "10vh" : "40px",
                 left: "50%",
                 transform: "translateX(-50%)",
                 background: lightMode
