@@ -89,6 +89,49 @@ const loadMoreButtonStyles = (isMobile) => ({
 });
 
 export default function App() {
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const panOffset = useRef({ x: 0, y: 0 });
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  // Pan handlers
+  const handleMouseDown = (e) => {
+    if (zoom <= 1) return;
+    isPanning.current = true;
+    panStart.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isPanning.current) return;
+    const dx = e.clientX - panStart.current.x;
+    const dy = e.clientY - panStart.current.y;
+    setOffset({ x: panOffset.current.x + dx, y: panOffset.current.y + dy });
+  };
+
+  const handleMouseUp = () => {
+    if (!isPanning.current) return;
+    isPanning.current = false;
+    panOffset.current = { ...offset };
+  };
+
+  const handleTouchPanStart = (e) => {
+    if (zoom <= 1 || e.touches.length !== 1) return;
+    isPanning.current = true;
+    panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const handleTouchPanMove = (e) => {
+    if (!isPanning.current || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - panStart.current.x;
+    const dy = e.touches[0].clientY - panStart.current.y;
+    setOffset({ x: panOffset.current.x + dx, y: panOffset.current.y + dy });
+  };
+
+  const handleTouchPanEnd = () => {
+    if (!isPanning.current) return;
+    isPanning.current = false;
+    panOffset.current = { ...offset };
+  };
   const [data, setData] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [expandedIndex, setExpandedIndex] = useState(null);
@@ -505,17 +548,36 @@ export default function App() {
               maxWidth: "100%",
               maxHeight: "90vh",
               objectFit: "contain",
-              transform: `scale(${zoom})`,
-              transition: "transform 0.05s linear",
+              transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${
+                offset.y / zoom
+              }px)`,
+              transition: isPanning.current ? "none" : "transform 0.05s linear",
               touchAction: "none",
-              cursor: "pointer",
+              cursor: zoom === 1 ? "pointer" : "grab",
             }}
             onClick={(e) => {
+              if (zoom !== 1) return; // prevent navigation when zoomed
               e.stopPropagation();
               const rect = e.currentTarget.getBoundingClientRect();
               const clickX = e.clientX - rect.left;
               if (clickX < rect.width / 2) handlePrevious();
               else handleNext();
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={(e) => {
+              handleTouchStart(e); // pinch-zoom
+              handleTouchPanStart(e); // pan
+            }}
+            onTouchMove={(e) => {
+              handleTouchMove(e); // pinch-zoom
+              handleTouchPanMove(e); // pan
+            }}
+            onTouchEnd={(e) => {
+              handleTouchEnd(e); // pinch-zoom
+              handleTouchPanEnd(); // pan
             }}
           />
           {/* Counter */}
@@ -526,10 +588,14 @@ export default function App() {
               left: "50%",
               transform: "translateX(-50%)",
               background: "rgba(30, 30, 30, 0.95)",
-              padding: isMobile ? "8px 16px" : "10px 24px",
-              borderRadius: 30,
+              padding: isMobile
+                ? "clamp(4px,2vw,10px) clamp(8px,4vw,16px)"
+                : "clamp(6px,1.5vw,12px) clamp(12px,3vw,24px)",
+              borderRadius: "clamp(12px,2vw,30px)",
               color: "#a78bfa",
-              fontSize: isMobile ? 13 : 15,
+              fontSize: isMobile
+                ? "clamp(12px,3vw,16px)"
+                : "clamp(14px,2vw,18px)",
               fontWeight: "600",
               backdropFilter: "blur(10px)",
               border: "1px solid rgba(167, 139, 250, 0.3)",
@@ -586,13 +652,17 @@ export default function App() {
           <div
             style={{
               position: "fixed",
-              bottom: isMobile ? 20 : 40,
+              bottom: isMobile ? "20px" : "40px",
               left: "50%",
               transform: "translateX(-50%)",
               background: "rgba(20, 20, 20, 0.95)",
               backdropFilter: "blur(16px)",
-              padding: isMobile ? "12px 20px" : "16px 32px",
-              borderRadius: isMobile ? 12 : 20,
+              padding: isMobile
+                ? "clamp(8px,2vw,16px) clamp(12px,4vw,32px)"
+                : "clamp(12px,1.5vw,20px) clamp(16px,3vw,32px)",
+              borderRadius: isMobile
+                ? "clamp(8px,2vw,12px)"
+                : "clamp(12px,2vw,20px)",
               border: "1px solid rgba(99, 102, 241, 0.3)",
               boxShadow:
                 "0 16px 48px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2)",
@@ -604,7 +674,9 @@ export default function App() {
           >
             <div
               style={{
-                fontSize: isMobile ? 16 : 22,
+                fontSize: isMobile
+                  ? "clamp(14px,4vw,18px)"
+                  : "clamp(16px,2vw,22px)",
                 fontWeight: "600",
                 color: "#ffffff",
                 letterSpacing: "0.02em",
@@ -613,13 +685,22 @@ export default function App() {
             >
               {pagedData[expandedIndex]?.name}
             </div>
-            <div style={{ color: "#a78bfa", fontSize: isMobile ? 13 : 16 }}>
+            <div
+              style={{
+                color: "#a78bfa",
+                fontSize: isMobile
+                  ? "clamp(12px,3vw,16px)"
+                  : "clamp(14px,1.5vw,16px)",
+              }}
+            >
               {pagedData[expandedIndex]?.ranking}
             </div>
             <div
               style={{
                 color: "#9ca3af",
-                fontSize: isMobile ? 12 : 15,
+                fontSize: isMobile
+                  ? "clamp(12px,2.5vw,14px)"
+                  : "clamp(13px,1.2vw,15px)",
                 marginTop: 4,
               }}
             >
