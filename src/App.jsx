@@ -697,13 +697,15 @@ export default function App() {
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.97)",
+            backgroundColor: lightMode
+              ? "rgba(255, 255, 255, 0.97)"
+              : "rgba(0, 0, 0, 0.97)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1100,
-            padding: isMobile ? "8vw 3vw" : isTablet ? "5vw 4vw" : "2vw",
+            padding: isMobile ? "6vw 2vw" : isTablet ? "4vw 3vw" : "2vw",
             backdropFilter: "blur(20px)",
             animation: "fadeIn 0.3s ease",
             overscrollBehavior: "contain",
@@ -774,29 +776,31 @@ export default function App() {
               onClick={(e) => e.stopPropagation()}
               style={{
                 position: "fixed",
-                top: isMobile ? "50px" : isTablet ? "40px" : "20px",
+                top: isMobile ? "3vh" : isTablet ? "2.5vh" : "20px",
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "rgba(30, 30, 30, 0.95)",
+                background: lightMode
+                  ? "rgba(255, 255, 255, 0.95)"
+                  : "rgba(30, 30, 30, 0.95)",
                 padding: isMobile
-                  ? "8px 12px"
+                  ? "6px 10px"
                   : isTablet
-                  ? "10px 16px"
+                  ? "8px 14px"
                   : "clamp(6px,1.5vw,12px) clamp(12px,3vw,24px)",
                 borderRadius: 12,
                 color: "#a78bfa",
                 fontSize: isMobile
-                  ? 14
+                  ? 12
                   : isTablet
-                  ? 15
+                  ? 13
                   : "clamp(14px,2vw,18px)",
                 fontWeight: "600",
                 backdropFilter: "blur(10px)",
-                border: "2px solid #6366f1",
+                border: lightMode ? "2px solid #6366f1" : "2px solid #6366f1",
                 whiteSpace: "nowrap",
                 zIndex: 1102,
                 textAlign: "center",
-                width: isMobile ? "70px" : "80px",
+                width: isMobile ? "60px" : "80px",
               }}
             />
           ) : (
@@ -807,25 +811,29 @@ export default function App() {
               }}
               style={{
                 position: "fixed",
-                top: isMobile ? "50px" : isTablet ? "40px" : "20px",
+                top: isMobile ? "3vh" : isTablet ? "2.5vh" : "20px",
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "rgba(30, 30, 30, 0.95)",
+                background: lightMode
+                  ? "rgba(255, 255, 255, 0.95)"
+                  : "rgba(30, 30, 30, 0.95)",
                 padding: isMobile
-                  ? "8px 12px"
+                  ? "6px 10px"
                   : isTablet
-                  ? "10px 16px"
+                  ? "8px 14px"
                   : "clamp(6px,1.5vw,12px) clamp(12px,3vw,24px)",
                 borderRadius: 12,
                 color: "#a78bfa",
                 fontSize: isMobile
-                  ? 14
+                  ? 12
                   : isTablet
-                  ? 15
+                  ? 13
                   : "clamp(14px,2vw,18px)",
                 fontWeight: "600",
                 backdropFilter: "blur(10px)",
-                border: "1px solid rgba(167, 139, 250, 0.3)",
+                border: lightMode
+                  ? "1px solid rgba(99, 102, 241, 0.3)"
+                  : "1px solid rgba(167, 139, 250, 0.3)",
                 whiteSpace: "nowrap",
                 zIndex: 1102,
                 cursor: "pointer",
@@ -848,23 +856,23 @@ export default function App() {
               left: isMobile ? "2%" : isTablet ? "2.5%" : "3%",
               transform: "translateY(-50%)",
               fontSize: isMobile
-                ? "32px"
+                ? "24px"
                 : isTablet
-                ? "40px"
+                ? "32px"
                 : "clamp(24px, 5vw, 48px)",
-              background: "rgba(0,0,0,0.4)",
+              background: lightMode ? "rgba(0, 0, 0, 0.2)" : "rgba(0,0,0,0.4)",
               border: "none",
               borderRadius: "50%",
-              color: "#fff",
+              color: lightMode ? "#000" : "#fff",
               width: isMobile
-                ? "45px"
+                ? "40px"
                 : isTablet
-                ? "60px"
+                ? "50px"
                 : "clamp(40px, 8vw, 80px)",
               height: isMobile
-                ? "45px"
+                ? "40px"
                 : isTablet
-                ? "60px"
+                ? "50px"
                 : "clamp(40px, 8vw, 80px)",
               cursor: "pointer",
               zIndex: 1200,
@@ -889,23 +897,23 @@ export default function App() {
               right: isMobile ? "2%" : isTablet ? "2.5%" : "3%",
               transform: "translateY(-50%)",
               fontSize: isMobile
-                ? "32px"
+                ? "24px"
                 : isTablet
-                ? "40px"
+                ? "32px"
                 : "clamp(24px, 5vw, 48px)",
-              background: "rgba(0,0,0,0.4)",
+              background: lightMode ? "rgba(0, 0, 0, 0.2)" : "rgba(0,0,0,0.4)",
               border: "none",
               borderRadius: "50%",
-              color: "#fff",
+              color: lightMode ? "#000" : "#fff",
               width: isMobile
-                ? "45px"
+                ? "40px"
                 : isTablet
-                ? "60px"
+                ? "50px"
                 : "clamp(40px, 8vw, 80px)",
               height: isMobile
-                ? "45px"
+                ? "40px"
                 : isTablet
-                ? "60px"
+                ? "50px"
                 : "clamp(40px, 8vw, 80px)",
               cursor: "pointer",
               zIndex: 1200,
@@ -926,17 +934,29 @@ export default function App() {
             }}
             style={{
               position: "absolute",
-              top: isMobile ? "50px" : isTablet ? "40px" : "20px",
-              right: isMobile ? "12px" : isTablet ? "20px" : "30px",
+              top: isMobile ? "3vh" : isTablet ? "2.5vh" : "20px",
+              right: isMobile ? "8px" : isTablet ? "15px" : "30px",
               background: favorites.includes(expandedIndex)
                 ? "rgba(236, 72, 153, 0.2)"
+                : lightMode
+                ? "rgba(0, 0, 0, 0.1)"
                 : "rgba(30, 30, 30, 0.95)",
-              padding: "8px 12px",
+              padding: isMobile
+                ? "6px 8px"
+                : isTablet
+                ? "7px 10px"
+                : "8px 12px",
               borderRadius: 12,
-              color: favorites.includes(expandedIndex) ? "#ec4899" : "#9ca3af",
-              fontSize: isMobile ? 18 : 22,
+              color: favorites.includes(expandedIndex)
+                ? "#ec4899"
+                : lightMode
+                ? "#6366f1"
+                : "#9ca3af",
+              fontSize: isMobile ? 16 : isTablet ? 18 : 22,
               border: favorites.includes(expandedIndex)
                 ? "1px solid rgba(236, 72, 153, 0.5)"
+                : lightMode
+                ? "1px solid rgba(99, 102, 241, 0.3)"
                 : "1px solid rgba(167, 139, 250, 0.3)",
               cursor: "pointer",
               backdropFilter: "blur(10px)",
@@ -955,15 +975,19 @@ export default function App() {
             <div
               style={{
                 position: "fixed",
-                bottom: isMobile ? "120px" : isTablet ? "130px" : "140px",
+                bottom: isMobile ? "8vh" : isTablet ? "9vh" : "140px",
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "rgba(30, 30, 30, 0.95)",
+                background: lightMode
+                  ? "rgba(255, 255, 255, 0.95)"
+                  : "rgba(30, 30, 30, 0.95)",
                 padding: "6px 12px",
                 borderRadius: 10,
                 color: "#a78bfa",
                 fontSize: 12,
-                border: "1px solid rgba(167, 139, 250, 0.3)",
+                border: lightMode
+                  ? "1px solid rgba(99, 102, 241, 0.3)"
+                  : "1px solid rgba(167, 139, 250, 0.3)",
                 backdropFilter: "blur(10px)",
                 zIndex: 1102,
                 whiteSpace: "nowrap",
@@ -978,15 +1002,19 @@ export default function App() {
             <div
               style={{
                 position: "fixed",
-                bottom: isMobile ? "120px" : "auto",
+                bottom: isMobile ? "15vh" : "auto",
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "rgba(30, 30, 30, 0.95)",
-                padding: "6px 12px",
+                background: lightMode
+                  ? "rgba(255, 255, 255, 0.95)"
+                  : "rgba(30, 30, 30, 0.95)",
+                padding: "5px 10px",
                 borderRadius: 10,
-                color: "#9ca3af",
-                fontSize: 11,
-                border: "1px solid rgba(167, 139, 250, 0.3)",
+                color: lightMode ? "#666" : "#9ca3af",
+                fontSize: 10,
+                border: lightMode
+                  ? "1px solid rgba(0, 0, 0, 0.1)"
+                  : "1px solid rgba(167, 139, 250, 0.3)",
                 backdropFilter: "blur(10px)",
                 zIndex: 1102,
                 whiteSpace: "nowrap",
@@ -1001,24 +1029,29 @@ export default function App() {
           <div
             style={{
               position: "fixed",
-              bottom: isMobile ? "20px" : isTablet ? "30px" : "40px",
+              bottom: isMobile ? "1.5vh" : isTablet ? "2vh" : "40px",
               left: "50%",
               transform: "translateX(-50%)",
-              background: "rgba(20, 20, 20, 0.95)",
+              background: lightMode
+                ? "rgba(255, 255, 255, 0.95)"
+                : "rgba(20, 20, 20, 0.95)",
               backdropFilter: "blur(16px)",
               padding: isMobile
-                ? "clamp(8px,2vw,16px) clamp(12px,4vw,32px)"
+                ? "6px 10px"
                 : isTablet
-                ? "clamp(10px,2vw,18px) clamp(14px,4vw,32px)"
+                ? "8px 14px"
                 : "clamp(12px,1.5vw,20px) clamp(16px,3vw,32px)",
               borderRadius: isMobile
-                ? "clamp(8px,2vw,12px)"
+                ? 10
                 : isTablet
-                ? "clamp(10px,2vw,14px)"
+                ? 12
                 : "clamp(12px,2vw,20px)",
-              border: "1px solid rgba(99, 102, 241, 0.3)",
-              boxShadow:
-                "0 16px 48px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2)",
+              border: lightMode
+                ? "1px solid rgba(99, 102, 241, 0.2)"
+                : "1px solid rgba(99, 102, 241, 0.3)",
+              boxShadow: lightMode
+                ? "0 4px 16px rgba(0, 0, 0, 0.1)"
+                : "0 16px 48px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2)",
               zIndex: 1102,
               textAlign: "center",
               maxWidth: isMobile ? "90%" : isTablet ? "80%" : "70%",
@@ -1028,14 +1061,14 @@ export default function App() {
             <div
               style={{
                 fontSize: isMobile
-                  ? "clamp(14px,4vw,18px)"
+                  ? "clamp(12px, 3vw, 14px)"
                   : isTablet
-                  ? "clamp(15px,3vw,20px)"
+                  ? "clamp(14px, 2vw, 16px)"
                   : "clamp(16px,2vw,22px)",
                 fontWeight: "600",
-                color: "#ffffff",
+                color: lightMode ? "#000" : "#ffffff",
                 letterSpacing: "0.02em",
-                marginBottom: isMobile ? 6 : 8,
+                marginBottom: isMobile ? 3 : 6,
               }}
             >
               {data[expandedIndex]?.name}
@@ -1044,9 +1077,9 @@ export default function App() {
               style={{
                 color: "#a78bfa",
                 fontSize: isMobile
-                  ? "clamp(12px,3vw,16px)"
+                  ? "clamp(10px, 2.5vw, 12px)"
                   : isTablet
-                  ? "clamp(13px,2vw,15px)"
+                  ? "clamp(12px, 1.5vw, 14px)"
                   : "clamp(14px,1.5vw,16px)",
               }}
             >
@@ -1054,13 +1087,13 @@ export default function App() {
             </div>
             <div
               style={{
-                color: "#9ca3af",
+                color: lightMode ? "#666" : "#9ca3af",
                 fontSize: isMobile
-                  ? "clamp(12px,2.5vw,14px)"
+                  ? "clamp(10px, 2vw, 12px)"
                   : isTablet
-                  ? "clamp(12px,2vw,14px)"
+                  ? "clamp(11px, 1.2vw, 13px)"
                   : "clamp(13px,1.2vw,15px)",
-                marginTop: 4,
+                marginTop: 2,
               }}
             >
               {data[expandedIndex]?.votes}
