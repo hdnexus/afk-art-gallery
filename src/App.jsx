@@ -99,11 +99,12 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const imgRef = useRef(null);
+  const [zoom, setZoom] = useState(1);
+  const lastTouchDistance = useRef(null);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -152,10 +153,8 @@ export default function App() {
   const handlePrevious = useCallback(
     (e) => {
       e?.stopPropagation();
-      setExpandedIndex((prev) => {
-        const newIndex = prev > 0 ? prev - 1 : pagedData.length - 1;
-        return newIndex;
-      });
+      setExpandedIndex((prev) => (prev > 0 ? prev - 1 : pagedData.length - 1));
+      setZoom(1);
     },
     [pagedData.length]
   );
@@ -174,30 +173,54 @@ export default function App() {
           prev < pagedData.length - 1 ? prev + 1 : 0
         );
       }
+      setZoom(1);
     },
     [expandedIndex, pagedData.length, data.length]
   );
 
   const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDistance.current = Math.hypot(dx, dy);
+    } else if (e.touches.length === 1) {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2 && lastTouchDistance.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.hypot(dx, dy);
+      const scaleChange = distance / lastTouchDistance.current;
+      setZoom((prev) => Math.min(Math.max(prev * scaleChange, 1), 4));
+      lastTouchDistance.current = distance;
+    }
   };
 
   const handleTouchEnd = (e) => {
     if (expandedIndex === null) return;
 
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const diffX = touchStartX.current - touchEndX;
-    const diffY = Math.abs(touchStartY.current - touchEndY);
+    if (e.changedTouches.length === 1) {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const diffX = touchStartX.current - touchEndX;
+      const diffY = Math.abs(touchStartY.current - touchEndY);
 
-    if (diffY < 50) {
-      if (diffX > 50) {
-        handleNext();
-      } else if (diffX < -50) {
-        handlePrevious();
+      if (diffY < 50) {
+        if (diffX > 50) handleNext();
+        else if (diffX < -50) handlePrevious();
       }
     }
+    lastTouchDistance.current = null;
+  };
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    if (expandedIndex === null) return;
+    setZoom((prev) => Math.min(Math.max(prev + e.deltaY * -0.0015, 1), 4));
   };
 
   useEffect(() => {
@@ -225,19 +248,11 @@ export default function App() {
             animation: "spin 1s linear infinite",
           }}
         ></div>
-        <div
-          style={{
-            fontSize: 16,
-            color: "#9ca3af",
-            fontWeight: "500",
-          }}
-        >
+        <div style={{ fontSize: 16, color: "#9ca3af", fontWeight: "500" }}>
           Loading gallery...
         </div>
         <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
       </div>
     );
@@ -245,28 +260,23 @@ export default function App() {
 
   return (
     <>
-      <style>
-        {`
-          @keyframes glow {
-            0% { filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.5)); }
-            100% { filter: drop-shadow(0 0 60px rgba(167, 139, 250, 0.8)); }
-          }
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-          }
-          @media (max-width: 768px) {
-            body {
-              overflow-x: hidden;
-            }
-          }
-        `}
-      </style>
+      <style>{`
+        @keyframes glow {
+          0% { filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.5)); }
+          100% { filter: drop-shadow(0 0 60px rgba(167, 139, 250, 0.8)); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        @media (max-width: 768px) { body { overflow-x: hidden; } }
+      `}</style>
 
+      {/* Gallery Header */}
       <div
         style={{
           position: "relative",
@@ -279,11 +289,11 @@ export default function App() {
         <div
           style={{
             position: "absolute",
-            top: 60,
+            top: "10%",
             left: "50%",
             transform: "translateX(-50%)",
-            width: isMobile ? 300 : 600,
-            height: isMobile ? 300 : 600,
+            width: isMobile ? "50vw" : "40vw",
+            height: isMobile ? "50vw" : "40vw",
             background:
               "radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)",
             borderRadius: "50%",
@@ -356,6 +366,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* Gallery Grid */}
       <div style={galleryStyles}>
         {pagedData.map(({ img, name, ranking, votes }, idx) => (
           <div
@@ -456,6 +467,7 @@ export default function App() {
         </button>
       )}
 
+      {/* Expanded View */}
       {expandedIndex !== null && (
         <div
           style={{
@@ -470,59 +482,42 @@ export default function App() {
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1100,
-            padding: isMobile ? "60px 12px 12px 12px" : "20px",
+            padding: isMobile ? "8vw 4vw" : "2vw",
             backdropFilter: "blur(20px)",
             animation: "fadeIn 0.3s ease",
             overscrollBehavior: "contain",
             boxSizing: "border-box",
             gap: isMobile ? 0 : 20,
             overflow: "auto",
+            touchAction: isMobile ? "pinch-zoom" : "none",
           }}
           onClick={() => setExpandedIndex(null)}
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
         >
-          {/* Close Button */}
-          <button
+          <img
+            ref={imgRef}
+            src={pagedData[expandedIndex]?.img}
+            alt={pagedData[expandedIndex]?.name}
             style={{
-              position: "fixed",
-              top: isMobile ? "8px" : "20px",
-              right: isMobile ? "8px" : "20px",
-              background: "rgba(239, 68, 68, 0.9)",
-              border: "none",
-              borderRadius: "50%",
-              width: isMobile ? 44 : 56,
-              height: isMobile ? 44 : 56,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              maxWidth: "100%",
+              maxHeight: "90vh",
+              objectFit: "contain",
+              transform: `scale(${zoom})`,
+              transition: "transform 0.05s linear",
+              touchAction: "none",
               cursor: "pointer",
-              transition: "all 0.3s ease",
-              color: "#fff",
-              fontSize: isMobile ? 24 : 28,
-              fontWeight: "bold",
-              boxShadow: "0 8px 32px rgba(239, 68, 68, 0.4)",
-              zIndex: 1102,
-              padding: 0,
-              minWidth: 0,
             }}
             onClick={(e) => {
               e.stopPropagation();
-              setExpandedIndex(null);
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              if (clickX < rect.width / 2) handlePrevious();
+              else handleNext();
             }}
-            onMouseEnter={(e) =>
-              !isMobile &&
-              (e.currentTarget.style.transform = "scale(1.1) rotate(90deg)")
-            }
-            onMouseLeave={(e) =>
-              !isMobile &&
-              (e.currentTarget.style.transform = "scale(1) rotate(0deg)")
-            }
-            aria-label="Close"
-          >
-            ×
-          </button>
-
+          />
           {/* Counter */}
           <div
             style={{
@@ -544,175 +539,93 @@ export default function App() {
           >
             {expandedIndex + 1} / {693}
           </div>
-
-          {/* Left Click Area / Button */}
+          {/* Navigation Buttons */}
+          <button
+            onClick={(e) => handlePrevious(e)}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "3%",
+              transform: "translateY(-50%)",
+              fontSize: "clamp(24px, 5vw, 48px)",
+              background: "rgba(0,0,0,0.3)",
+              border: "none",
+              borderRadius: "50%",
+              color: "#fff",
+              width: "clamp(40px, 8vw, 80px)",
+              height: "clamp(40px, 8vw, 80px)",
+              cursor: "pointer",
+              zIndex: 1200,
+            }}
+            aria-label="Previous image"
+          >
+            ‹
+          </button>
+          <button
+            onClick={(e) => handleNext(e)}
+            style={{
+              position: "absolute",
+              top: "50%",
+              right: "3%",
+              transform: "translateY(-50%)",
+              fontSize: "clamp(24px, 5vw, 48px)",
+              background: "rgba(0,0,0,0.3)",
+              border: "none",
+              borderRadius: "50%",
+              color: "#fff",
+              width: "clamp(40px, 8vw, 80px)",
+              height: "clamp(40px, 8vw, 80px)",
+              cursor: "pointer",
+              zIndex: 1200,
+            }}
+            aria-label="Next image"
+          >
+            ›
+          </button>
+          {/* Title and Info - Bottom Fixed */}
           <div
             style={{
               position: "fixed",
-              left: 0,
-              top: 0,
-              width: isMobile ? "25%" : "15%",
-              height: "100%",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1101,
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePrevious();
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={(e) => {
-              if (expandedIndex === null) return;
-              const touchEndX = e.changedTouches[0].clientX;
-              const touchEndY = e.changedTouches[0].clientY;
-              const diffX = touchStartX.current - touchEndX;
-              const diffY = Math.abs(touchStartY.current - touchEndY);
-              if (diffY < 50 && diffX < -50) {
-                handlePrevious();
-              }
+              bottom: isMobile ? 20 : 40,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(20, 20, 20, 0.95)",
+              backdropFilter: "blur(16px)",
+              padding: isMobile ? "12px 20px" : "16px 32px",
+              borderRadius: isMobile ? 12 : 20,
+              border: "1px solid rgba(99, 102, 241, 0.3)",
+              boxShadow:
+                "0 16px 48px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2)",
+              zIndex: 1102,
+              textAlign: "center",
+              maxWidth: isMobile ? "90%" : "70%",
+              animation: "fadeIn 0.4s ease",
             }}
           >
-            {!isMobile && (
-              <button
-                style={{
-                  background: "rgba(99, 102, 241, 0.9)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 64,
-                  height: 64,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  color: "#fff",
-                  fontSize: 28,
-                  fontWeight: "bold",
-                  boxShadow: "0 8px 32px rgba(99, 102, 241, 0.4)",
-                  padding: 0,
-                  minWidth: 0,
-                  transform: navHover === "prev" ? "scale(1.15)" : "scale(1)",
-                  pointerEvents: "none",
-                }}
-                onMouseEnter={() => setNavHover("prev")}
-                onMouseLeave={() => setNavHover(null)}
-                aria-label="Previous image"
-              >
-                ‹
-              </button>
-            )}
-          </div>
-
-          {/* Image */}
-          <img
-            src={pagedData[expandedIndex]?.img}
-            alt={pagedData[expandedIndex]?.name}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              width: "auto",
-              height: "auto",
-              borderRadius: isMobile ? 0 : 16,
-              boxShadow: isMobile
-                ? "none"
-                : "0 0 100px rgba(99, 102, 241, 0.5), 0 0 200px rgba(0, 0, 0, 0.9)",
-              transition: "all 0.4s ease",
-              objectFit: "contain",
-              touchAction: "none",
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNext();
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          />
-
-          {/* Right Click Area / Button */}
-          <div
-            style={{
-              position: "fixed",
-              right: 0,
-              top: 0,
-              width: isMobile ? "25%" : "15%",
-              height: "100%",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1101,
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNext();
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={(e) => {
-              if (expandedIndex === null) return;
-              const touchEndX = e.changedTouches[0].clientX;
-              const touchEndY = e.changedTouches[0].clientY;
-              const diffX = touchStartX.current - touchEndX;
-              const diffY = Math.abs(touchStartY.current - touchEndY);
-              if (diffY < 50 && diffX > 50) {
-                handleNext();
-              }
-            }}
-          >
-            {!isMobile && (
-              <button
-                style={{
-                  background: "rgba(99, 102, 241, 0.9)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 64,
-                  height: 64,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  color: "#fff",
-                  fontSize: 28,
-                  fontWeight: "bold",
-                  boxShadow: "0 8px 32px rgba(99, 102, 241, 0.4)",
-                  padding: 0,
-                  minWidth: 0,
-                  transform: navHover === "next" ? "scale(1.15)" : "scale(1)",
-                  pointerEvents: "none",
-                }}
-                onMouseEnter={() => setNavHover("next")}
-                onMouseLeave={() => setNavHover(null)}
-                aria-label="Next image"
-              >
-                ›
-              </button>
-            )}
-          </div>
-
-          {/* Title and Info - Only on Desktop */}
-          {!isMobile && (
             <div
               style={{
-                fontSize: 22,
+                fontSize: isMobile ? 16 : 22,
                 fontWeight: "600",
                 color: "#ffffff",
-                textAlign: "center",
-                maxWidth: "80%",
                 letterSpacing: "0.02em",
+                marginBottom: isMobile ? 6 : 8,
               }}
             >
               {pagedData[expandedIndex]?.name}
-              <div style={{ color: "#a78bfa", fontSize: 16, marginTop: 6 }}>
-                {pagedData[expandedIndex]?.ranking}
-              </div>
-              <div style={{ color: "#9ca3af", fontSize: 15 }}>
-                {pagedData[expandedIndex]?.votes}
-              </div>
             </div>
-          )}
+            <div style={{ color: "#a78bfa", fontSize: isMobile ? 13 : 16 }}>
+              {pagedData[expandedIndex]?.ranking}
+            </div>
+            <div
+              style={{
+                color: "#9ca3af",
+                fontSize: isMobile ? 12 : 15,
+                marginTop: 4,
+              }}
+            >
+              {pagedData[expandedIndex]?.votes}
+            </div>
+          </div>
         </div>
       )}
     </>
