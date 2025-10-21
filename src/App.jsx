@@ -38,7 +38,7 @@ const imageStyles = {
 };
 
 const nameStyles = {
-  padding: "24px 20px",
+  padding: "18px 20px",
   fontSize: 17,
   fontWeight: "600",
   textAlign: "center",
@@ -46,10 +46,12 @@ const nameStyles = {
   letterSpacing: "0.02em",
   background: "linear-gradient(180deg, #1a1a1a 0%, #151515 100%)",
   lineHeight: 1.4,
-  minHeight: 70,
+  minHeight: 100,
   display: "flex",
+  flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  gap: 4,
 };
 
 const overlayStyles = {
@@ -204,7 +206,12 @@ export default function App() {
     fetch("/data.json")
       .then((res) => res.json())
       .then((data) => {
-        setData(data);
+        const sorted = [...data].sort((a, b) => {
+          const rankA = parseInt(a.ranking.replace("Rank:", "").trim());
+          const rankB = parseInt(b.ranking.replace("Rank:", "").trim());
+          return rankA - rankB;
+        });
+        setData(sorted);
         setLoading(false);
       })
       .catch((err) => {
@@ -237,9 +244,8 @@ export default function App() {
         expandedIndex === pagedData.length - 1 &&
         pagedData.length < data.length
       ) {
-        // Load more and move to next image
         setPage((p) => p + 1);
-        setExpandedIndex(pagedData.length); // Move to the newly loaded image
+        setExpandedIndex(pagedData.length);
       } else {
         setExpandedIndex((prev) =>
           prev < pagedData.length - 1 ? prev + 1 : 0
@@ -401,7 +407,7 @@ export default function App() {
       </div>
 
       <div style={galleryStyles}>
-        {pagedData.map(({ img, name }, idx) => (
+        {pagedData.map(({ img, name, ranking, votes }, idx) => (
           <div
             key={img + idx}
             style={{
@@ -442,7 +448,17 @@ export default function App() {
               }}
               loading="lazy"
             />
-            <div style={nameStyles}>{name}</div>
+            <div style={nameStyles}>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: "600", color: "#fff" }}>
+                  {name}
+                </div>
+                <div style={{ fontSize: 14, color: "#a78bfa", marginTop: 6 }}>
+                  {ranking}
+                </div>
+                <div style={{ fontSize: 14, color: "#9ca3af" }}>{votes}</div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -522,17 +538,25 @@ export default function App() {
           >
             ›
           </button>
+
           <div style={counterStyles}>
-            {expandedIndex + 1} / {data.length}
+            {expandedIndex + 1} / {693}
           </div>
+
           <img
             src={pagedData[expandedIndex].img}
             alt={pagedData[expandedIndex].name}
             style={overlayImageStyles}
-            onClick={(e) => e.stopPropagation()}
           />
-
-          <div style={imageTitleStyles}>{pagedData[expandedIndex].name}</div>
+          <div style={imageTitleStyles}>
+            {pagedData[expandedIndex].name}
+            <div style={{ color: "#a78bfa", fontSize: 16, marginTop: 6 }}>
+              {pagedData[expandedIndex].ranking}
+            </div>
+            <div style={{ color: "#9ca3af", fontSize: 15 }}>
+              {pagedData[expandedIndex].votes}
+            </div>
+          </div>
         </div>
       )}
     </>
